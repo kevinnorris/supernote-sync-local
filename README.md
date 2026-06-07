@@ -28,3 +28,9 @@ WiFi transfer must be toggled on the Supernote device.
 ```bash
 bun run index.ts
 ```
+
+## Mac gotchas
+
+If running on a Mac the terminal you are running on may not have `Local Network` permissions. This shows up as a very opaque error.
+
+- In `Privacy & Security -> Local Network` ensure your running terminal has permission.
