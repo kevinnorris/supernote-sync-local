@@ -29,6 +29,7 @@ try {
 	const result = await runSyncPass({
 		deviceName: config.device.name,
 		syncDirs: config.syncDirs,
+		syncExtensions: config.syncExtensions,
 		device,
 		local,
 		store,

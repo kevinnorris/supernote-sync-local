@@ -11,6 +11,11 @@ function serializeKey(key: FileKey): string {
 	return `${key.deviceName}\u0000${key.devicePath}`;
 }
 
+// Same extension rule as the local walk in local.ts, so both sides sync the same set of files.
+function extensionOf(devicePath: string): string {
+	return devicePath.split('.').pop()?.toLowerCase() ?? '';
+}
+
 function md5Equal(a: Uint8Array, b: Uint8Array): boolean {
 	return Buffer.from(a).equals(Buffer.from(b));
 }
@@ -45,6 +50,7 @@ async function download(
 type SyncDeps = {
 	deviceName: string;
 	syncDirs: string[];
+	syncExtensions: Set<string>;
 	device: DeviceClient;
 	local: LocalFs;
 	store: SnapshotStore;
@@ -152,13 +158,14 @@ async function handleKey(args: HandleKeyArgs): Promise<void> {
 }
 
 export async function runSyncPass(deps: SyncDeps): Promise<Counts> {
-	const {deviceName, syncDirs, device, local, store} = deps;
+	const {deviceName, syncDirs, syncExtensions, device, local, store} = deps;
 
 	const [deviceList, localList] = await Promise.all([
 		device.listAll(syncDirs),
 		local.listAll(),
 	]);
-	const deviceFiles = new Map(deviceList.map(f => [serializeKey(f.key), f]));
+	const syncedDeviceList = deviceList.filter(f => syncExtensions.has(extensionOf(f.key.devicePath)));
+	const deviceFiles = new Map(syncedDeviceList.map(f => [serializeKey(f.key), f]));
 	const localFiles = new Map(localList.map(f => [serializeKey(f.key), f]));
 	const snapshots = new Map(store.all(deviceName).map(s => [serializeKey(s.key), s]));
 

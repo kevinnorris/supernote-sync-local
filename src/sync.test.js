@@ -77,7 +77,7 @@ describe('runSyncPass', () => {
 		const store = openSnapshotStore(':memory:');
 
 		const result = await runSyncPass({
-			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, device, local, store, logger,
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
 		});
 
 		expect(result.downloaded).toBe(1);
@@ -92,6 +92,20 @@ describe('runSyncPass', () => {
 		store.close();
 	});
 
+	it('ignores device files whose extension is not in syncExtensions', async () => {
+		const content = new TextEncoder().encode('annotation data');
+		const device = makeDeviceStub(new Map([['/Document/a.note.mark', content]]));
+		const store = openSnapshotStore(':memory:');
+
+		const result = await runSyncPass({
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
+		});
+
+		expect(result.downloaded).toBe(0);
+		expect(store.all(DEVICE_NAME)).toHaveLength(0);
+		store.close();
+	});
+
 	it('NEW local→device: uploads file and upserts snapshot', async () => {
 		const content = Buffer.from('hello local');
 		await writeFile(path.join(root, 'Document', 'b.note'), content);
@@ -100,7 +114,7 @@ describe('runSyncPass', () => {
 		const store = openSnapshotStore(':memory:');
 
 		const result = await runSyncPass({
-			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, device, local, store, logger,
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
 		});
 
 		expect(result.downloaded).toBe(0);
@@ -126,7 +140,7 @@ describe('runSyncPass', () => {
 		});
 
 		const result = await runSyncPass({
-			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, device, local, store, logger,
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
 		});
 
 		expect(result.downloaded).toBe(0);
@@ -148,7 +162,7 @@ describe('runSyncPass', () => {
 		});
 
 		const result = await runSyncPass({
-			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, device, local, store, logger,
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
 		});
 
 		expect(result.downloaded).toBe(1);
@@ -172,7 +186,7 @@ describe('runSyncPass', () => {
 		});
 
 		const result = await runSyncPass({
-			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, device, local, store, logger,
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
 		});
 
 		expect(result.downloaded).toBe(0);
@@ -196,7 +210,7 @@ describe('runSyncPass', () => {
 		});
 
 		const result = await runSyncPass({
-			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, device, local, store, logger,
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
 		});
 
 		expect(result.downloaded).toBe(0);
@@ -219,7 +233,7 @@ describe('runSyncPass', () => {
 		});
 
 		const result = await runSyncPass({
-			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, device, local, store, logger,
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
 		});
 
 		expect(result.downloaded).toBe(0);
@@ -240,7 +254,7 @@ describe('runSyncPass', () => {
 		});
 
 		const result = await runSyncPass({
-			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, device, local, store, logger,
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
 		});
 
 		expect(result.downloaded).toBe(0);
@@ -268,7 +282,7 @@ describe('runSyncPass', () => {
 		});
 
 		const result = await runSyncPass({
-			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, device, local, store, logger,
+			deviceName: DEVICE_NAME, syncDirs: SYNC_DIRS, syncExtensions: new Set(['note']), device, local, store, logger,
 		});
 
 		expect(result.downloaded).toBe(1);
