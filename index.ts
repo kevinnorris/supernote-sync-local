@@ -13,13 +13,18 @@ try {
 	logger.info('sync start');
 
 	store = openSnapshotStore(config.dbPath);
+	logger.info('snapshot opened');
+
 	const device = makeDeviceClient(config.device);
+	logger.info('device client initiated');
+
 	const local = makeLocalFs({
 		localPath: config.localPath,
 		syncDirs: config.syncDirs,
 		syncExtensions: config.syncExtensions,
 		deviceName: config.device.name,
 	});
+	logger.info('local file system initiated');
 
 	const result = await runSyncPass({
 		deviceName: config.device.name,
