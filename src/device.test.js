@@ -29,6 +29,21 @@ const listings = new Map([
 	]],
 	['/EXPORT', []],
 	['/Empty', []],
+	['/Spaced', [
+		{
+			uri: '/Spaced/Bog+standard', name: 'Bog standard', size: 0, date: '2024-01-15 10:00', isDirectory: true,
+		},
+	]],
+	['/Spaced/Bog standard', [
+		{
+			uri: '/Spaced/Bog+standard/The+Mom+Test.epub', name: 'The Mom Test.epub', size: 42, date: '2024-01-15 09:00', isDirectory: false,
+		},
+	]],
+	['/Loop', [
+		{
+			uri: '/Loop', name: 'Loop', size: 0, date: '2024-01-15 10:00', isDirectory: true,
+		},
+	]],
 ]);
 
 let server;
@@ -104,6 +119,18 @@ describe('makeDeviceClient', () => {
 		const client = makeClient();
 		const files = await client.listAll(['Empty']);
 		expect(files).toHaveLength(0);
+	});
+
+	it('listAll decodes form-encoded uris where "+" means a space', async () => {
+		const client = makeClient();
+		const files = await client.listAll(['Spaced']);
+		const paths = files.map(f => f.key.devicePath);
+		expect(paths).toEqual(['/Spaced/Bog standard/The Mom Test.epub']);
+	});
+
+	it('listAll throws when the device returns an already-listed directory', async () => {
+		const client = makeClient();
+		await expect(client.listAll(['Loop'])).rejects.toThrow('Device listing loop detected');
 	});
 
 	it('download returns the correct bytes', async () => {

@@ -39,6 +39,11 @@ function extractPage(html: string): DevicePage {
 	return JSON.parse(match[1]) as unknown as DevicePage;
 }
 
+// The device form-encodes uri values: spaces become "+".
+function decodeDeviceUri(uri: string): string {
+	return decodeURIComponent(uri.replaceAll('+', ' '));
+}
+
 function encodePath(devicePath: string): string {
 	return devicePath
 		.split('/')
@@ -64,16 +69,23 @@ export function makeDeviceClient(
 
 	async function listAll(syncDirs: string[]): Promise<DeviceFile[]> {
 		const results: DeviceFile[] = [];
+		const visited = new Set<string>();
 		const queue: string[] = syncDirs.map(dir => `/${dir}`);
 		while (queue.length > 0) {
 			const current = queue.splice(0, 1)[0]!;
+			if (visited.has(current)) {
+				throw new Error(`Device listing loop detected at "${current}": the device listed a directory again, `
+					+ 'which happens when it falls back to the root page for a path it does not recognize');
+			}
+
+			visited.add(current);
 			const page = await fetchPage(current); // eslint-disable-line no-await-in-loop
 			if (page.deviceName !== name) {
 				throw new Error(`Device name mismatch: expected "${name}", got "${page.deviceName}"`);
 			}
 
 			for (const entry of page.fileList) {
-				const devicePath = decodeURIComponent(entry.uri);
+				const devicePath = decodeDeviceUri(entry.uri);
 				if (entry.isDirectory) {
 					queue.push(devicePath);
 				} else {
