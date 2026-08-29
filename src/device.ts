@@ -1,15 +1,30 @@
 import type {Config} from './config.ts';
 
 export type FileKey = {deviceName: string; devicePath: string};
-export type DeviceFile = {key: FileKey; size: number; mtime: Date; isDir: boolean};
+export type DeviceFile = {
+	key: FileKey;
+	size: number;
+	mtime: Date;
+	isDir: boolean;
+};
 
 export type DeviceClient = {
 	listAll(syncDirs: string[]): Promise<DeviceFile[]>;
 	download(devicePath: string): ReadableStream<Uint8Array>;
-	upload(devicePath: string, body: ReadableStream<Uint8Array>, filename: string): Promise<void>;
+	upload(
+		devicePath: string,
+		body: ReadableStream<Uint8Array>,
+		filename: string,
+	): Promise<void>;
 };
 
-type DeviceEntry = {uri: string; name: string; size: number; date: string; isDirectory: boolean};
+type DeviceEntry = {
+	uri: string;
+	name: string;
+	size: number;
+	date: string;
+	isDirectory: boolean;
+};
 type DevicePage = {deviceName: string; fileList: DeviceEntry[]};
 
 const pageJsonRe = /const json = '(\{[^']+\})'/v;
@@ -25,7 +40,10 @@ function extractPage(html: string): DevicePage {
 }
 
 function encodePath(devicePath: string): string {
-	return devicePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+	return devicePath
+		.split('/')
+		.map(segment => encodeURIComponent(segment))
+		.join('/');
 }
 
 export function makeDeviceClient(
@@ -74,7 +92,10 @@ export function makeDeviceClient(
 
 	function download(devicePath: string): ReadableStream<Uint8Array> {
 		const url = baseUrl + encodePath(devicePath);
-		const {readable, writable} = new TransformStream<Uint8Array, Uint8Array>();
+		const {readable, writable} = new TransformStream<
+			Uint8Array,
+			Uint8Array
+		>();
 		void (async () => {
 			try {
 				const response = await fetchImpl(url);
