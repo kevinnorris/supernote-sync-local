@@ -60,7 +60,43 @@ type HandleKeyArgs = {
 	counts: Counts;
 };
 
-async function handleKey({key, deviceFile, localFile, snapshot, deps, counts}: HandleKeyArgs): Promise<void> {
+async function handleBothPresent({key, deviceFile, localFile, snapshot, deps, counts}: HandleKeyArgs): Promise<void> {
+	const {logger} = deps;
+	const deviceChanged = deviceFile!.size !== snapshot!.size;
+	const localMd5 = await localFile!.md5();
+	const localChanged = !md5Equal(localMd5, snapshot!.md5);
+
+	if (!deviceChanged && !localChanged) {
+		logger.debug({devicePath: key.devicePath}, 'OK');
+	} else if (deviceChanged && !localChanged) {
+		logger.info({devicePath: key.devicePath}, 'DOWNLOAD stale');
+		await download(key, deviceFile!, deps);
+		counts.downloaded++;
+	} else {
+		const reason = deviceChanged ? 'both edited' : 'local edited, device = DB';
+		logger.warn({devicePath: key.devicePath}, `CONFLICT ${reason}`);
+		counts.conflicts++;
+	}
+}
+
+async function handleDeviceMissing({key, localFile, snapshot, deps, counts}: HandleKeyArgs): Promise<void> {
+	const {local, store, logger} = deps;
+	const localMd5 = await localFile!.md5();
+	const localUnchanged = md5Equal(localMd5, snapshot!.md5);
+
+	if (localUnchanged) {
+		logger.info({devicePath: key.devicePath}, 'TRASH deleted');
+		await local.trash(key);
+		store.delete(key);
+		counts.trashed++;
+	} else {
+		logger.warn({devicePath: key.devicePath}, 'CONFLICT local edited, device deleted');
+		counts.conflicts++;
+	}
+}
+
+async function handleKey(args: HandleKeyArgs): Promise<void> {
+	const {key, deviceFile, localFile, snapshot, deps, counts} = args;
 	const {device, local, store, logger} = deps;
 
 	const onDevice = Boolean(deviceFile);
@@ -91,42 +127,13 @@ async function handleKey({key, deviceFile, localFile, snapshot, deps, counts}: H
 
 	const existsEverywhere = onDevice && onLocal && tracked;
 	if (existsEverywhere) {
-		const deviceChanged = deviceFile!.size !== snapshot!.size;
-		const localMd5 = await localFile!.md5();
-		const localChanged = !md5Equal(localMd5, snapshot!.md5);
-		const unchanged = !deviceChanged && !localChanged;
-		const onlyDeviceChanged = deviceChanged && !localChanged;
-
-		if (unchanged) {
-			logger.debug({devicePath: key.devicePath}, 'OK');
-		} else if (onlyDeviceChanged) {
-			logger.info({devicePath: key.devicePath}, 'DOWNLOAD stale');
-			await download(key, deviceFile!, deps);
-			counts.downloaded++;
-		} else {
-			const reason = deviceChanged ? 'both edited' : 'local edited, device = DB';
-			logger.warn({devicePath: key.devicePath}, `CONFLICT ${reason}`);
-			counts.conflicts++;
-		}
-
+		await handleBothPresent(args);
 		return;
 	}
 
 	const missingFromDevice = !onDevice && onLocal && tracked;
 	if (missingFromDevice) {
-		const localMd5 = await localFile!.md5();
-		const localUnchanged = md5Equal(localMd5, snapshot!.md5);
-
-		if (localUnchanged) {
-			logger.info({devicePath: key.devicePath}, 'TRASH deleted');
-			await local.trash(key);
-			store.delete(key);
-			counts.trashed++;
-		} else {
-			logger.warn({devicePath: key.devicePath}, 'CONFLICT local edited, device deleted');
-			counts.conflicts++;
-		}
-
+		await handleDeviceMissing(args);
 		return;
 	}
 
